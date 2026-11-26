@@ -42,24 +42,34 @@ Das Netzwerkprotokoll des Spiels bleibt **unverändert**. Spieler ohne Patch
 können weiterhin mitspielen, sobald sie gefunden werden (sie selbst finden
 aber nur über den normalen Weg).
 
-## Installation (Windows 10 / 11)
+## Installation
 
-Auf **allen** Mitspieler-PCs:
+Fertige Pakete gibt es auf der Release-Seite:
 
-1. Release-ZIP entpacken (oder `build/dist` nach dem Bauen).
-2. `install.bat` per **Rechtsklick → Als Administrator ausführen**.
-   Das Skript sucht den Spielordner selbst (GOG/Steam-Standardpfade) oder
-   fragt danach. Ihr könnt den Ordner auch angeben:
-   `install.bat "D:\Spiele\Stronghold Crusader Extreme HD"`
-3. Spiel starten → Mehrspieler → LAN/TCP-IP, **IP-Feld leer lassen**.
+| System | Paket | Anleitung |
+|---|---|---|
+| Windows 10 / 11 | `SC-LANPatch-<Version>-Windows.zip` | [docs/ANLEITUNG-Windows.md](docs/ANLEITUNG-Windows.md) |
+| Linux (Proton / Wine / Steam) | `SC-LANPatch-<Version>-Linux.tar.gz` | [docs/ANLEITUNG-Linux.md](docs/ANLEITUNG-Linux.md) |
 
-Das Skript erledigt:
-- DirectPlay aktivieren (`dism /online /enable-feature /featurename:DirectPlay /all`),
-- `dplayx.dll` + `sclanpatch.ini` in den Spielordner kopieren,
-- Firewall-Regeln für das Spiel, `dplaysvr.exe` und die Ports
-  TCP 47624/47630/2300–2400 und UDP 47624/2300–2400 anlegen.
+**Kurzfassung Windows:** ZIP entpacken → `install.bat` per Rechtsklick
+„Als Administrator ausführen“ → Spiel starten → Mehrspieler → TCP/IP →
+IP-Feld leer lassen.
 
-Deinstallation: `uninstall.bat` (als Administrator).
+**Kurzfassung Linux:**
+
+```bash
+tar xzf SC-LANPatch-*-Linux.tar.gz && cd SC-LANPatch-*-Linux
+./sclan-linux.sh install --game "/pfad/zu/Stronghold Crusader Extreme HD"
+./sclan-linux.sh start
+```
+
+Das Skript legt ein Proton-Prefix an und installiert Microsofts DirectPlay
+hinein. Das ist nötig, weil Wines eigenes DirectPlay keine Spiele hosten kann.
+Außerdem setzt es die DLL-Overrides. Für die Steam-Version gibt es
+`--steam-appid`, für Wine/Lutris/Heroic `--runner wine`.
+
+Der Patch muss auf **allen** Mitspieler-PCs installiert sein. Windows- und
+Linux-Spieler können gemischt spielen.
 
 ### Über das Internet / VPN (Tailscale, ZeroTier, Hamachi …)
 
@@ -72,23 +82,6 @@ Peers=100.101.102.103, 100.64.0.7
 Es reicht, wenn **eine** Seite die andere kennt. Gefundene Peers werden
 weitergereicht.
 
-## Linux (Proton / Wine)
-
-Wines eigenes DirectPlay kann **keine Spiele hosten** („session creation is
-not yet supported“). Daher braucht ihr Microsofts DirectPlay im Prefix:
-
-```bash
-WINEPREFIX=/pfad/zum/prefix winetricks directplay
-```
-
-Für Steam/Proton entsprechend `protontricks <appid> directplay`. Danach
-`dplayx.dll` + `sclanpatch.ini` in den Spielordner kopieren und die
-Startoption setzen:
-
-```
-WINEDLLOVERRIDES="dplayx=n,b" %command%
-```
-
 ## Konfiguration
 
 Alles in `sclanpatch.ini` neben der Spiel-EXE (dokumentiert in der Datei).
@@ -99,11 +92,27 @@ und ob die Hooks aktiv sind.
 
 ## Bauen
 
-Benötigt MinGW-w64 (i686):
+Benötigt MinGW-w64 (i686). Das Spiel ist ein 32-Bit-Windows-Programm, daher
+ist der Patch auf beiden Systemen dieselbe 32-Bit-DLL.
 
 ```bash
 make            # build/dplayx.dll + build/dptest.exe
-make dist       # build/SC-LANPatch.zip
+make dist       # build/SC-LANPatch-<ver>-Windows.zip + build/SC-LANPatch-<ver>-Linux.tar.gz
+```
+
+Unter Windows: MSYS2 installieren, die Shell „MSYS2 MINGW32“ öffnen,
+`pacman -S make zip mingw-w64-i686-gcc` und dann `make CROSS=` bzw. `make dist CROSS=`.
+
+### Aufbau
+
+```
+src/                  Patch (dplayx.dll-Proxy, Hooks, TCP-Nachbarsuche)
+packaging/windows/    install.bat, uninstall.bat, firewall.bat
+packaging/linux/      sclan-linux.sh (install / start / status / uninstall)
+packaging/common/     sclanpatch.ini
+docs/                 Anleitungen Windows / Linux
+tools/dptest.c        DirectPlay-Testprogramm (verhält sich wie das Spiel)
+test/                 Linux-Testlabor (Network-Namespaces + Proton, headless)
 ```
 
 ## Testen ohne zweiten PC (Linux)

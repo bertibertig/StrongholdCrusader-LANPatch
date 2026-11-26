@@ -1,13 +1,25 @@
-# SC LAN Patch - build with MinGW-w64 (i686, the game is 32 bit)
-CC      ?= i686-w64-mingw32-gcc
-CC      := i686-w64-mingw32-gcc
-CFLAGS  := -O2 -Wall -Wextra -Wno-unused-parameter -Wno-cast-function-type -Wno-format-truncation -std=gnu99 \
-           -D_WIN32_WINNT=0x0601 -DWINVER=0x0601 -fno-ident
+# SC LAN Patch
+#
+# The game is a 32 bit Windows program, so the patch is always a 32 bit
+# Windows DLL - on Linux it is loaded by Proton/Wine. Build with MinGW-w64:
+#   Linux (cross):          make
+#   Windows (MSYS2 MINGW32): make CROSS=
+#
+#   make             build/dplayx.dll + build/dptest.exe
+#   make dist        build/SC-LANPatch-<ver>-Windows.zip + build/SC-LANPatch-<ver>-Linux.tar.gz
+
+VERSION := $(shell sed -n 's/^\#define SCLAN_VERSION *"\(.*\)"/\1/p' src/sclan.h)
+CROSS   ?= i686-w64-mingw32-
+CC      := $(CROSS)gcc
+CFLAGS  := -O2 -Wall -Wextra -Wno-unused-parameter -Wno-cast-function-type -Wno-format-truncation \
+           -std=gnu99 -D_WIN32_WINNT=0x0601 -DWINVER=0x0601 -fno-ident
 LDFLAGS := -shared -static -static-libgcc -s -Wl,--enable-stdcall-fixup -Wl,--kill-at
 LIBS    := -lws2_32 -liphlpapi -lole32 -luuid
 
 SRC     := src/proxy.c src/hooks.c src/discovery.c src/net.c src/config.c
 OUT     := build
+WINPKG  := SC-LANPatch-$(VERSION)-Windows
+LINPKG  := SC-LANPatch-$(VERSION)-Linux
 
 all: $(OUT)/dplayx.dll $(OUT)/dptest.exe
 
@@ -21,15 +33,26 @@ $(OUT)/dptest.exe: tools/dptest.c | $(OUT)
 $(OUT):
 	mkdir -p $@
 
-dist: all
-	rm -rf $(OUT)/dist $(OUT)/SC-LANPatch.zip && mkdir -p $(OUT)/dist
-	cp $(OUT)/dplayx.dll dist/sclanpatch.ini dist/install.bat dist/uninstall.bat dist/firewall.bat $(OUT)/dist/
-	cp README.md $(OUT)/dist/LIESMICH.md
+dist: dist-windows dist-linux
+
+dist-windows: $(OUT)/dplayx.dll
+	rm -rf $(OUT)/$(WINPKG) $(OUT)/$(WINPKG).zip && mkdir -p $(OUT)/$(WINPKG)
+	cp $(OUT)/dplayx.dll packaging/common/sclanpatch.ini packaging/windows/*.bat $(OUT)/$(WINPKG)/
+	cp docs/ANLEITUNG-Windows.md $(OUT)/$(WINPKG)/ANLEITUNG.md
+	cp README.md $(OUT)/$(WINPKG)/LIESMICH.md
 	# cmd.exe needs CRLF line endings (goto/labels break with LF)
-	sed -i 's/\r*$$/\r/' $(OUT)/dist/*.bat $(OUT)/dist/*.ini
-	cd $(OUT)/dist && zip -q -r ../SC-LANPatch.zip .
+	sed -i 's/\r*$$/\r/' $(OUT)/$(WINPKG)/*.bat $(OUT)/$(WINPKG)/*.ini $(OUT)/$(WINPKG)/*.md
+	cd $(OUT) && zip -q -r $(WINPKG).zip $(WINPKG)
+
+dist-linux: $(OUT)/dplayx.dll
+	rm -rf $(OUT)/$(LINPKG) $(OUT)/$(LINPKG).tar.gz && mkdir -p $(OUT)/$(LINPKG)
+	cp $(OUT)/dplayx.dll packaging/common/sclanpatch.ini packaging/linux/sclan-linux.sh $(OUT)/$(LINPKG)/
+	cp docs/ANLEITUNG-Linux.md $(OUT)/$(LINPKG)/ANLEITUNG.md
+	cp README.md $(OUT)/$(LINPKG)/LIESMICH.md
+	chmod +x $(OUT)/$(LINPKG)/sclan-linux.sh
+	cd $(OUT) && tar -czf $(LINPKG).tar.gz $(LINPKG)
 
 clean:
 	rm -rf $(OUT)
 
-.PHONY: all dist clean
+.PHONY: all dist dist-windows dist-linux clean

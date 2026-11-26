@@ -130,7 +130,7 @@ prep_prefix() { # NAME -> sets up proton prefix + game copy, echoes nothing
     rm -f "$app/dplayx.dll" "$app/sclanpatch.log" "$app/dptest.log"
     if [[ "$PATCH" == on ]]; then
         cp -f "$ROOT/build/dplayx.dll" "$app/"
-        cp -f "$ROOT/dist/sclanpatch.ini" "$app/"
+        cp -f "$ROOT/packaging/common/sclanpatch.ini" "$app/"
         if [[ "$SCENARIO" == routed && "$n" == B ]]; then
             sed -i 's/^Peers=.*/Peers=10.77.0.10/' "$app/sclanpatch.ini"
         fi

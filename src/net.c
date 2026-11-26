@@ -15,7 +15,8 @@ static DWORD g_if_time;
 static const char *virtual_hints[] = {
     "virtualbox", "vmware", "hyper-v", "vethernet", "docker", "wsl",
     "tap-", "tap ", "tun", "wireguard", "openvpn", "npcap", "loopback",
-    "bluetooth", "vpn", "zerotier", "hamachi", "tailscale", "radmin", NULL
+    "bluetooth", "vpn", "zerotier", "hamachi", "tailscale", "radmin",
+    "br-", "virbr", "vboxnet", "vmnet", NULL
 };
 
 static int contains_ci(const char *hay, const char *needle)
