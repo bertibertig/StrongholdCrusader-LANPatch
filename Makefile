@@ -40,8 +40,9 @@ dist-windows: $(OUT)/dplayx.dll
 	cp $(OUT)/dplayx.dll packaging/common/sclanpatch.ini packaging/windows/*.bat $(OUT)/$(WINPKG)/
 	cp docs/ANLEITUNG-Windows.md $(OUT)/$(WINPKG)/ANLEITUNG.md
 	cp README.md $(OUT)/$(WINPKG)/LIESMICH.md
+	cp LICENSE $(OUT)/$(WINPKG)/LICENSE.txt
 	# cmd.exe needs CRLF line endings (goto/labels break with LF)
-	sed -i 's/\r*$$/\r/' $(OUT)/$(WINPKG)/*.bat $(OUT)/$(WINPKG)/*.ini $(OUT)/$(WINPKG)/*.md
+	sed -i 's/\r*$$/\r/' $(OUT)/$(WINPKG)/*.bat $(OUT)/$(WINPKG)/*.ini $(OUT)/$(WINPKG)/*.md $(OUT)/$(WINPKG)/LICENSE.txt
 	cd $(OUT) && zip -q -r $(WINPKG).zip $(WINPKG)
 
 dist-linux: $(OUT)/dplayx.dll
@@ -49,6 +50,7 @@ dist-linux: $(OUT)/dplayx.dll
 	cp $(OUT)/dplayx.dll packaging/common/sclanpatch.ini packaging/linux/sclan-linux.sh $(OUT)/$(LINPKG)/
 	cp docs/ANLEITUNG-Linux.md $(OUT)/$(LINPKG)/ANLEITUNG.md
 	cp README.md $(OUT)/$(LINPKG)/LIESMICH.md
+	cp LICENSE $(OUT)/$(LINPKG)/LICENSE
 	chmod +x $(OUT)/$(LINPKG)/sclan-linux.sh
 	cd $(OUT) && tar -czf $(LINPKG).tar.gz $(LINPKG)
 

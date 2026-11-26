@@ -141,3 +141,9 @@ Ergebnisse (Proton GE 11-12 + MS DirectPlay):
 | routed (`Peers=`) | **nicht gefunden** | gefunden + beigetreten |
 
 Siehe auch [PLAYTEST.md](PLAYTEST.md) für die Prüfliste beim echten Anspielen.
+
+## Lizenz
+
+Der Patch-Code steht unter der [GNU GPL v3](LICENSE). Stronghold Crusader gehört
+FireFly Studios. Dies ist ein inoffizielles Fan-Projekt ohne Verbindung zu FireFly.
+Microsoft DirectPlay wird nicht mitgeliefert.
