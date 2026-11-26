@@ -8,11 +8,11 @@ Beim Anspielen mit echten PCs prüfen. Format: `[ ]` offen, `[x]` bestanden (mit
 - [ ] `uninstall.bat` entfernt DLL und Firewall-Regeln — 6024c23
 
 ## Linux (sclan-linux.sh)
-- [ ] `sclan-linux.sh install --game …` auf einem frischen System: Prefix wird angelegt, DirectPlay geladen + installiert, `status` zeigt alles grün — noch nicht committet
-- [ ] `sclan-linux.sh start`: Spiel startet mit Ton und Fenster, Mehrspieler → Host funktioniert — noch nicht committet
-- [ ] Steam-Version: `install --steam-appid <id>`, Start über Steam, Host/Beitreten klappt — noch nicht committet
-- [ ] Linux-Host + Windows-Client (und umgekehrt) finden sich und spielen zusammen — noch nicht committet
-- [x] Headless (`start --headless`): Spiel hostet, Ton in Null-Sink, SIGTERM räumt Xvfb/Sink/Wine auf (2026-11-26) — noch nicht committet
+- [ ] `sclan-linux.sh install --game …` auf einem frischen System: Prefix wird angelegt, DirectPlay geladen + installiert, `status` zeigt alles grün — 958baaa
+- [ ] `sclan-linux.sh start`: Spiel startet mit Ton und Fenster, Mehrspieler → Host funktioniert — 958baaa
+- [ ] Steam-Version: `install --steam-appid <id>`, Start über Steam, Host/Beitreten klappt — 958baaa
+- [ ] Linux-Host + Windows-Client (und umgekehrt) finden sich und spielen zusammen — 958baaa
+- [x] Headless (`start --headless`): Spiel hostet, Ton in Null-Sink, SIGTERM räumt Xvfb/Sink/Wine auf (2026-11-26) — 958baaa
 
 ## Finden & Beitreten
 - [ ] Zwei Win10-PCs im selben LAN, IP-Feld leer: Client findet Host sofort — 6024c23
