@@ -1,0 +1,27 @@
+# Copyrighted game files - never commit
+game_files/
+*.exe
+*.EXE
+binkw32.dll
+Mss32.dll
+mss32.dll
+shfolder.dll
+unicows.dll
+*.bik
+*.tgx
+*.gm1
+*.map
+*.sav
+*.aiv
+# screenshots contain copyrighted game art
+*.png
+
+# Build / test artefacts
+build/
+test/prefixes/
+test/logs/
+*.o
+*.obj
+# Microsoft DirectPlay DLLs (redistributable, not ours)
+test/native-dplay/
+*.dll

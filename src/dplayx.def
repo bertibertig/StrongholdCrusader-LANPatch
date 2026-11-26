@@ -1,0 +1,16 @@
+; Ordinals match Microsoft's dplayx.dll (DirectX 9 / Windows 10).
+; The game imports ordinal 1 (DirectPlayCreate); dpwsockx.dll imports
+; gdwDPlaySPRefCount by name.
+LIBRARY dplayx.dll
+EXPORTS
+    DirectPlayCreate        = DirectPlayCreate@12        @1
+    DirectPlayEnumerateA    = DirectPlayEnumerateA@8     @2
+    DirectPlayEnumerateW    = DirectPlayEnumerateW@8     @3
+    DirectPlayLobbyCreateA  = DirectPlayLobbyCreateA@20  @4
+    DirectPlayLobbyCreateW  = DirectPlayLobbyCreateW@20  @5
+    DllCanUnloadNow         = DllCanUnloadNow@0          @6 PRIVATE
+    DllGetClassObject       = DllGetClassObject@12       @7 PRIVATE
+    DllRegisterServer       = DllRegisterServer@0        @8 PRIVATE
+    DirectPlayEnumerate     = DirectPlayEnumerate@8      @9
+    DllUnregisterServer     = DllUnregisterServer@0      @10 PRIVATE
+    gdwDPlaySPRefCount                                   @11 DATA
