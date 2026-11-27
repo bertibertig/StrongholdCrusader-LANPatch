@@ -29,22 +29,22 @@ Beim Anspielen mit echten PCs prüfen. Format: `[ ]` offen, `[x]` bestanden (mit
 - [ ] Spiel beenden → neue Partie hosten/beitreten ohne Neustart (DPWSockX wird neu geladen, Hooks greifen wieder; siehe `sclanpatch.log`) — 6024c23
 
 ## UI-Skalierung (`UIScale=` in sclanpatch.ini)
-- [x] Extreme, 1920×1080, `UIScale=1.5`: Menüs, Leiste + Schreiber, Esc-Dialog vergrößert, Klicks treffen (Linux-Lab, 2026-11-27) — noch nicht committet
-- [x] Classic, 1920×1080, 1.5: Menüs, Burgenbau-Leiste, Esc-Dialog (Linux-Lab, 2026-11-27) — noch nicht committet
-- [x] Extreme, 1920×1200, `UIScale=2`: Menüs 2x scharf, Leiste 2x, Esc-Dialog (Linux-Lab, 2026-11-27) — noch nicht committet
-- [x] Classic, 1280×720, 1.5: Menükern auf 1.2x und Leiste auf 1.36x begrenzt, alles sichtbar (Linux-Lab, 2026-11-27) — noch nicht committet
-- [ ] Windows 10 echt, Vollbild 1920×1080, `UIScale=1.5`: flüssig, keine Bildfehler über der Leiste — noch nicht committet
-- [ ] 2560×1440 mit `UIScale=2` auf echtem Monitor (im Lab nicht möglich: Xvfb bietet den Modus nicht) — noch nicht committet
-- [ ] Alle Leisten-Untermenüs, Gebäude-Infofenster, Schreiber-Bericht, Einheiten-Auswahl: Klicks treffen — noch nicht committet
-- [ ] Weitere Dialoge (Optionen, Speichern/Laden mit Liste, Missionsziele, Sieg/Niederlage): vergrößert und bedienbar — noch nicht committet
-- [ ] Kartenscrollen am unteren Rand über der vergrößerten Leiste, Auswahlrahmen ziehen bis in die Leiste — noch nicht committet
-- [ ] Auflösung im Spiel wechseln (Optionen): Skalierung passt sich an, keine Reste — noch nicht committet
-- [ ] Alt+Tab raus und zurück im Vollbild — noch nicht committet
-- [ ] Fenstermodus (falls das Spiel ihn anbietet) — Code vorhanden, ungetestet — noch nicht committet
-- [ ] Intro-/Kampagnen-Videos werden nicht verzerrt/beschnitten — noch nicht committet
-- [ ] LAN-Partie mit `UIScale` bei einem Spieler und ohne beim anderen: kein Desync (nur Anzeige betroffen) — noch nicht committet
-- [ ] Karteneditor — noch nicht committet
+- [x] Extreme, 1920×1080, `UIScale=1.5`: Menüs, Leiste + Schreiber, Esc-Dialog vergrößert, Klicks treffen (Linux-Lab, 2026-11-27) — b1bcb89
+- [x] Classic, 1920×1080, 1.5: Menüs, Burgenbau-Leiste, Esc-Dialog (Linux-Lab, 2026-11-27) — b1bcb89
+- [x] Extreme, 1920×1200, `UIScale=2`: Menüs 2x scharf, Leiste 2x, Esc-Dialog (Linux-Lab, 2026-11-27) — b1bcb89
+- [x] Classic, 1280×720, 1.5: Menükern auf 1.2x und Leiste auf 1.36x begrenzt, alles sichtbar (Linux-Lab, 2026-11-27) — b1bcb89
+- [ ] Windows 10 echt, Vollbild 1920×1080, `UIScale=1.5`: flüssig, keine Bildfehler über der Leiste — b1bcb89
+- [ ] 2560×1440 mit `UIScale=2` auf echtem Monitor (im Lab nicht möglich: Xvfb bietet den Modus nicht) — b1bcb89
+- [ ] Alle Leisten-Untermenüs, Gebäude-Infofenster, Schreiber-Bericht, Einheiten-Auswahl: Klicks treffen — b1bcb89
+- [ ] Weitere Dialoge (Optionen, Speichern/Laden mit Liste, Missionsziele, Sieg/Niederlage): vergrößert und bedienbar — b1bcb89
+- [ ] Kartenscrollen am unteren Rand über der vergrößerten Leiste, Auswahlrahmen ziehen bis in die Leiste — b1bcb89
+- [ ] Auflösung im Spiel wechseln (Optionen): Skalierung passt sich an, keine Reste — b1bcb89
+- [ ] Alt+Tab raus und zurück im Vollbild — b1bcb89
+- [ ] Fenstermodus (falls das Spiel ihn anbietet) — Code vorhanden, ungetestet — b1bcb89
+- [ ] Intro-/Kampagnen-Videos werden nicht verzerrt/beschnitten — b1bcb89
+- [ ] LAN-Partie mit `UIScale` bei einem Spieler und ohne beim anderen: kein Desync (nur Anzeige betroffen) — b1bcb89
+- [ ] Karteneditor — b1bcb89
 
 ## Log prüfen
 - [ ] `sclanpatch.log` enthält „patched N imports in dpwsockx.dll“ und „peer found: …“ — 6024c23
-- [ ] Mit `UIScale>1`: Log enthält „ui: scene variable at …“ und „ui: game frame …“ — noch nicht committet
+- [ ] Mit `UIScale>1`: Log enthält „ui: scene variable at …“ und „ui: game frame …“ — b1bcb89
