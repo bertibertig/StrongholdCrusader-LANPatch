@@ -34,6 +34,8 @@ typedef struct {
     char  preferred_ip[64];        /* explicit address that must come first */
     char  ignore_adapters[512];    /* comma separated substrings of adapter names to ignore */
     int   log;
+    double ui_scale;               /* 1.0 = off, 1.5, 2 ... */
+    int   ui_debug;                /* extra logging + memory dumps on request */
 } sclan_config;
 
 typedef struct {
@@ -64,6 +66,9 @@ int  sclan_is_local_addr(ULONG addr);
 void sclan_hooks_install_exe(void);
 void sclan_hooks_on_dplay_loaded(void);
 int  sclan_patch_iat(HMODULE mod, const void *target, const void *repl);
+
+/* uiscale.c */
+void sclan_ui_install(void);
 
 /* proxy.c */
 HMODULE sclan_real_dplayx(void);

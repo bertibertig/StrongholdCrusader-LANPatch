@@ -90,6 +90,41 @@ Jeder Wert lässt sich auch per Umgebungsvariable `SCLAN_<Schlüssel>`
 `sclanpatch.log`: welche Adapter erkannt wurden, welche Peers gefunden wurden
 und ob die Hooks aktiv sind.
 
+## UI-Skalierung (hohe Auflösungen)
+
+Das Spiel läuft auch in 1920×1080, 2560×1440 usw. Die Karte nutzt dann die volle
+Auflösung, aber Leiste und Menüs bleiben in ihrer Originalgröße und werden
+winzig. Mit `UIScale=` in `sclanpatch.ini` vergrößert der Patch genau diese
+Bereiche, die Karte bleibt scharf:
+
+```ini
+UIScale=1.5     ; 1 = aus, 1.5, 2, 2.5 ... (auch "1,5" geht)
+```
+
+| Bereich | was vergrößert wird |
+|---|---|
+| Menüs | die Menüseite in der Bildmitte (1024×768 mit Steinrahmen, oder der 800×600-Kern, wenn die ganze Seite nicht passt) |
+| Im Spiel | untere Leiste samt Schreiber und Minimap |
+| Dialoge im Spiel | Esc-Menü, Optionen, Speichern/Laden, Rückfragen … |
+
+Mausklicks in vergrößerten Bereichen werden auf die Originalposition
+umgerechnet. Der Faktor wird pro Bereich automatisch so weit verkleinert, dass
+alles auf den Bildschirm passt (z.B. Menüs auf 1280×720 höchstens 1.2x).
+Ganzzahlige Faktoren (2, 3) werden pixelgenau scharf vergrößert, krumme (1.5)
+weich interpoliert. Funktioniert mit `Stronghold Crusader.exe` und
+`Stronghold_Crusader_Extreme.exe`; die EXE wird dabei nicht verändert. Die
+Skalierung ist unabhängig vom LAN-Teil, `Enabled=0` schaltet sie nicht ab.
+
+Unterstützte Spielauflösungen (fest im Spiel, 16 Bit): 800×600, 1024×600,
+1024×768, 1280×720, 1280×1024, 1360×768, 1366×768, 1440×900, 1600×900,
+1600×1200, 1680×1050, 1920×1080, 1920×1200, 2560×1440, 2560×1600.
+Empfehlung: native Auflösung des Monitors wählen und `UIScale` passend setzen,
+z.B. 1920×1080 → 1.5, 2560×1440 → 2. 4K kennt das Spiel nicht; dort 1920×1080
+(Monitor skaliert 2x) oder 2560×1440 wählen.
+
+Nicht vergrößert werden kleine Einblendungen direkt über der Karte
+(Rohstoffliste oben links, Taktik-Leiste rechts in Extreme, Tooltips).
+
 ## Bauen
 
 Benötigt MinGW-w64 (i686). Das Spiel ist ein 32-Bit-Windows-Programm, daher
@@ -106,7 +141,7 @@ Unter Windows: MSYS2 installieren, die Shell „MSYS2 MINGW32“ öffnen,
 ### Aufbau
 
 ```
-src/                  Patch (dplayx.dll-Proxy, Hooks, TCP-Nachbarsuche)
+src/                  Patch (dplayx.dll-Proxy, Hooks, TCP-Nachbarsuche, UI-Skalierung)
 packaging/windows/    install.bat, uninstall.bat, firewall.bat
 packaging/linux/      sclan-linux.sh (install / start / status / uninstall)
 packaging/common/     sclanpatch.ini
@@ -139,6 +174,15 @@ Ergebnisse (Proton GE 11-12 + MS DirectPlay):
 | flat | gefunden + beigetreten | gefunden + beigetreten |
 | multihome | **nicht gefunden** | gefunden + beigetreten |
 | routed (`Peers=`) | **nicht gefunden** | gefunden + beigetreten |
+
+`test/uilab.sh` startet das Spiel einzeln und unsichtbar (Xvfb, Ton auf einer
+Null-Sink) zum Prüfen der UI-Skalierung:
+
+```bash
+UISCALE=1.5 test/uilab.sh start extreme 1920x1080   # oder classic, andere Größe
+test/uilab.sh click 955 500                          # Klick, shot NAME = Screenshot
+test/uilab.sh stop
+```
 
 Siehe auch [PLAYTEST.md](PLAYTEST.md) für die Prüfliste beim echten Anspielen.
 

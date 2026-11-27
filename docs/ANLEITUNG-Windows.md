@@ -52,6 +52,19 @@ Peers=100.101.102.103, 100.64.0.7
 
 Es reicht, wenn **eine** Seite die andere kennt.
 
+## Größere Bedienoberfläche (UI-Skalierung)
+
+Bei hohen Auflösungen (z.B. 1920×1080) ist die Leiste unten sehr klein. In
+`sclanpatch.ini` im Spielordner:
+
+```ini
+UIScale=1.5
+```
+
+Damit werden Leiste, Menüs und Dialoge 1,5-fach vergrößert, die Karte bleibt in
+voller Auflösung. `2` = doppelt, `1` = aus. Im Spiel unter **Optionen** die
+native Auflösung des Monitors wählen.
+
 ## Prüfen, ob der Patch läuft
 
 Nach einem Mehrspieler-Versuch liegt `sclanpatch.log` im Spielordner. Darin sollte stehen:

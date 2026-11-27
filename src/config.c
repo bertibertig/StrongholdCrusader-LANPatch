@@ -51,6 +51,16 @@ void sclan_config_load(void)
     ini_str(ini, "PreferredIP", "", g_cfg.preferred_ip, sizeof g_cfg.preferred_ip);
     ini_str(ini, "IgnoreAdapters", "", g_cfg.ignore_adapters, sizeof g_cfg.ignore_adapters);
     g_cfg.log                    = ini_int(ini, "Log", 1);
+    {
+        char sc[32];
+        ini_str(ini, "UIScale", "1", sc, sizeof sc);
+        for (char *c = sc; *c; c++)
+            if (*c == ',') *c = '.';          /* "1,5" is what a German user types */
+        g_cfg.ui_scale = atof(sc);
+        if (g_cfg.ui_scale < 1.0) g_cfg.ui_scale = 1.0;
+        if (g_cfg.ui_scale > 4.0) g_cfg.ui_scale = 4.0;
+    }
+    g_cfg.ui_debug               = ini_int(ini, "UIDebug", 0);
 
     if (g_cfg.scan_interval_ms < 500) g_cfg.scan_interval_ms = 500;
     if (g_cfg.connect_timeout_ms < 50) g_cfg.connect_timeout_ms = 50;

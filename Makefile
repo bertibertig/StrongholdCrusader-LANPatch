@@ -14,9 +14,9 @@ CC      := $(CROSS)gcc
 CFLAGS  := -O2 -Wall -Wextra -Wno-unused-parameter -Wno-cast-function-type -Wno-format-truncation \
            -std=gnu99 -D_WIN32_WINNT=0x0601 -DWINVER=0x0601 -fno-ident
 LDFLAGS := -shared -static -static-libgcc -s -Wl,--enable-stdcall-fixup -Wl,--kill-at
-LIBS    := -lws2_32 -liphlpapi -lole32 -luuid
+LIBS    := -lws2_32 -liphlpapi -lole32 -luuid -lgdi32
 
-SRC     := src/proxy.c src/hooks.c src/discovery.c src/net.c src/config.c
+SRC     := src/proxy.c src/hooks.c src/discovery.c src/net.c src/config.c src/uiscale.c
 OUT     := build
 WINPKG  := SC-LANPatch-$(VERSION)-Windows
 LINPKG  := SC-LANPatch-$(VERSION)-Linux

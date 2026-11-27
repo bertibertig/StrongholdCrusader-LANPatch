@@ -127,6 +127,8 @@ BOOL WINAPI DllMain(HINSTANCE inst, DWORD reason, LPVOID reserved)
         sclan_log("SC LAN Patch " SCLAN_VERSION " loaded (enabled=%d)", g_cfg.enabled);
         if (g_cfg.enabled)
             sclan_hooks_install_exe();
+        if (g_cfg.ui_scale > 1.0 || g_cfg.ui_debug)
+            sclan_ui_install();
     }
     return TRUE;
 }

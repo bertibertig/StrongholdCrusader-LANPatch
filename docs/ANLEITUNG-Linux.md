@@ -80,6 +80,19 @@ Host: **Host** klicken. Mitspieler: **IP-Feld leer lassen → Beitreten**.
 
 oder `Peers=` in `sclanpatch.ini` im Spielordner von Hand setzen.
 
+## Größere Bedienoberfläche (UI-Skalierung)
+
+Bei hohen Auflösungen (z.B. 1920×1080) ist die Leiste unten sehr klein. In
+`sclanpatch.ini` im Spielordner:
+
+```ini
+UIScale=1.5
+```
+
+Damit werden Leiste, Menüs und Dialoge 1,5-fach vergrößert, die Karte bleibt in
+voller Auflösung. `2` = doppelt, `1` = aus. Im Spiel unter **Optionen** die
+native Auflösung des Monitors wählen.
+
 ## Firewall
 
 Nur nötig, wenn ufw oder firewalld aktiv ist (das Skript sagt es dann):
