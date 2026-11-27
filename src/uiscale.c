@@ -20,7 +20,7 @@
  *
  * Game state comes from two globals of the exe, located by a code signature
  * so both Stronghold Crusader.exe and Stronghold_Crusader_Extreme.exe work:
- *   scene         0x0e = in game, other values = menus
+ *   scene         0x0e / 0x10 = in game, other values = menus
  *   dialog block  scene-0x88: id, x, y, w, h ... ; scene-0x60: open id (-1 = none)
  */
 #include "sclan.h"
@@ -28,8 +28,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
 
 #define SCENE_INGAME   0x0e
+#define SCENE_INGAME2  0x10           /* in game too: switched to e.g. when a building is selected */
 #define SCENE_STARTUP  0
 #define MAX_REGIONS    3
 
@@ -85,6 +87,7 @@ static region g_last[MAX_REGIONS];
 static int   g_nlast;
 static int   g_last_scene = -12345;
 static LONG  g_dbg_left;
+static volatile LONG g_dump_frame;     /* debug: save the next unscaled screen picture */
 
 static void patch_vtbl(void *obj, int slot, void *repl, void **orig)
 {
@@ -218,6 +221,49 @@ static void set_dst(region *r)
 #define PILLAR_H     152
 #define SCRIBE_R     472          /* right edge of the scribe's book */
 #define SCRIBE_H     195          /* top of the hood above the bottom edge */
+#define ARCH_H       197          /* top of the mercenary post's tent arches */
+
+/* The mercenary post's panel has a row of tent arches on top of the strip:
+   curtains up to ~166 px with six finials up to 195 px. Its exact outline per
+   column (rel -400..164), built once; g_arches says whether it is on screen. */
+#define ARCH_L       (-400)
+#define ARCH_R       165
+static const int arch_finial[6] = { -329, -252, -171, -90, -9, 71 };
+static const WORD arch_tip565[6] = { 0x69c3, 0x7a03, 0x7a03, 0x7a03, 0x7a03, 0x69c3 };
+static unsigned char arch_top[ARCH_R - ARCH_L];
+static int g_arches;
+
+static void init_arches(void)
+{
+    int rel, i;
+    for (rel = ARCH_L; rel < ARCH_R; rel++) {
+        int top = PANEL_H;
+        for (i = 0; i < 6; i++) {
+            int d = abs(rel - arch_finial[i]), t;
+            if (d <= 4) t = 196;                      /* finial */
+            else if (d <= 6) t = 190;
+            else t = 152 + (int)ceil(14.0 * exp(-(d - 7) / 11.0));   /* curtain */
+            if (t > top) top = t;
+        }
+        if (rel < -385 || (rel >= 146 && rel < 159))   /* posts at both ends */
+            top = top > 170 ? top : 170;
+        arch_top[rel - ARCH_L] = (unsigned char)top;
+    }
+}
+
+/* is the arch row on screen? its finial tips are at fixed spots */
+static int detect_arches(const BYTE *src, LONG pitch)
+{
+    int i, hits = 0, y = g_h - 190;
+    for (i = 0; i < 6; i++) {
+        unsigned v = ((const WORD *)(src + y * pitch))[g_w / 2 + arch_finial[i]];
+        unsigned e = arch_tip565[i];
+        if (!g_565)                                   /* compare as 555 */
+            e = ((e >> 11) << 10) | (((e >> 6) & 31) << 5) | (e & 31);
+        hits += v == e;
+    }
+    return hits >= 4;
+}
 
 static int build_layout(region *out)
 {
@@ -230,15 +276,15 @@ static int build_layout(region *out)
         return 0;
     if (scene == SCENE_STARTUP)             /* intro videos */
         return 0;
-    if (scene == SCENE_INGAME) {
+    if (scene == SCENE_INGAME || scene == SCENE_INGAME2) {
         region *r = &out[n++];
         r->kind = 1;
         r->ax = cx;
         r->ay = g_h;
-        r->k = fit(k, 2.0 * SCRIBE_R, SCRIBE_H, g_w, g_h * 0.5);
+        r->k = fit(k, 2.0 * SCRIBE_R, ARCH_H, g_w, g_h * 0.5);
         r->src.left = (LONG)(cx - PANEL_HALF);
         r->src.right = (LONG)(cx + SCRIBE_R);
-        r->src.top = g_h - SCRIBE_H;
+        r->src.top = g_h - ARCH_H;
         r->src.bottom = g_h;
         /* scale symmetrically: the dst rect must cover the left half too */
         set_dst(r);
@@ -311,6 +357,8 @@ static int in_shape(const region *r, double x, double y)
         else if (rel >= 112 && rel < 142) top = 138;   /* red i/x column */
         else if (rel >= 142 && rel < 164) top = PILLAR_H; /* pillar */
         else if (rel >= 164 && rel < 308) top = 146;   /* minimap frame */
+        if (g_arches && rel >= ARCH_L && rel < ARCH_R && arch_top[(int)floor(rel) - ARCH_L] > top)
+            top = arch_top[(int)floor(rel) - ARCH_L];  /* mercenary post */
         if (h <= top)
             return 1;
     }
@@ -509,8 +557,32 @@ static void present_ui(IDirectDrawSurface *screen, LONG ox, LONG oy)
         }
         g_last_scene = scene;
     }
+    if (g_cfg.ui_debug && g_scene) {
+        static LONG last[11];
+        volatile LONG *b = (volatile LONG *)((BYTE *)g_scene - 0x88);
+        LONG cur[11];
+        int i;
+        for (i = 0; i < 10; i++)
+            cur[i] = b[i];
+        cur[10] = *(volatile LONG *)((BYTE *)g_scene - 0x60);
+        if (memcmp(cur, last, sizeof cur)) {
+            sclan_log("ui: dialog block %ld %ld %ld %ld %ld | %ld %ld %ld %ld %ld | open %ld",
+                      cur[0], cur[1], cur[2], cur[3], cur[4], cur[5], cur[6], cur[7], cur[8], cur[9], cur[10]);
+            memcpy(last, cur, sizeof cur);
+        }
+    }
     if (!ensure_work())
         return;
+    g_arches = 0;
+    if (scene == SCENE_INGAME2 && g_cfg.ui_scale > 1.0) {   /* a building's panel is open */
+        DDSURFACEDESC sd;
+        memset(&sd, 0, sizeof sd);
+        sd.dwSize = sizeof sd;
+        if (SUCCEEDED(g_shadow->lpVtbl->Lock(g_shadow, NULL, &sd, DDLOCK_WAIT | DDLOCK_READONLY, NULL))) {
+            g_arches = g_h >= 200 && g_w >= 2 * PANEL_HALF && detect_arches(sd.lpSurface, sd.lPitch);
+            g_shadow->lpVtbl->Unlock(g_shadow, NULL);
+        }
+    }
     n = build_layout(rs);
     if (!same_layout(rs, n, g_last, g_nlast)) {
         /* old enlarged areas must disappear (from both buffers of a flip chain) */
@@ -534,6 +606,21 @@ static void present_ui(IDirectDrawSurface *screen, LONG ox, LONG oy)
     if (FAILED(g_tmp->lpVtbl->Lock(g_tmp, NULL, &ts, DDLOCK_WAIT | DDLOCK_WRITEONLY, NULL))) {
         g_shadow->lpVtbl->Unlock(g_shadow, NULL);
         return;
+    }
+    if (g_dump_frame) {
+        /* debug: the unscaled screen picture as raw 16 bit rows */
+        static int nd;
+        char out[MAX_PATH];
+        FILE *f;
+        g_dump_frame = 0;
+        snprintf(out, sizeof out, "%s\\sclan_frame_%dx%d_%s_%d.raw", g_moddir, g_w, g_h,
+                 g_565 ? "565" : "555", nd++);
+        if ((f = fopen(out, "wb"))) {
+            for (i = 0; i < g_h; i++)
+                fwrite((BYTE *)fs.lpSurface + i * fs.lPitch, 2, g_w, f);
+            fclose(f);
+        }
+        sclan_log("ui: dumped screen -> %s", out);
     }
     {
         static LARGE_INTEGER freq, t0, t1;
@@ -836,6 +923,7 @@ static DWORD WINAPI dump_thread(LPVOID unused)
             }
             sclan_log("ui: dumped .data -> %s (scene %d)", out, read_scene());
         }
+        g_dump_frame = 1;               /* written by the render thread */
     }
     return 0;
 }
@@ -850,6 +938,7 @@ void sclan_ui_install(void)
     int n;
 
     InitializeCriticalSection(&g_cs);
+    init_arches();
     if (g_cfg.ui_debug)
         CreateThread(NULL, 0, dump_thread, NULL, 0, NULL);
     find_scene_var();

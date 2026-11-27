@@ -39,6 +39,8 @@ Beim Anspielen mit echten PCs prüfen. Format: `[ ]` offen, `[x]` bestanden (mit
 - [x] Classic, 1280×720, 1.5: Menükern auf 1.2x und Leiste auf 1.36x begrenzt, alles sichtbar (Linux-Lab, 2026-11-27) — b1bcb89
 - [ ] Windows 10 echt, Vollbild 1920×1080, `UIScale=1.5`: flüssig, keine Bildfehler über der Leiste — b1bcb89
 - [ ] 2560×1440 mit `UIScale=2` auf echtem Monitor (im Lab nicht möglich: Xvfb bietet den Modus nicht) — b1bcb89
+- [x] Windows 10 echt, Extreme, Vollbild 1920×1080, `UIScale=1.25`: Gebäude anklicken (Bergfried, Söldnerposten) → Leiste vergrößert, Karte nicht gezoomt, Zeltbögen des Söldnerpostens vollständig (2026-11-27) — uncommitted
+- [ ] Kaserne, Ingenieursgilde und weitere Gebäude-Leisten: nichts ragt abgeschnitten über die Leiste — uncommitted
 - [ ] Alle Leisten-Untermenüs, Gebäude-Infofenster, Schreiber-Bericht, Einheiten-Auswahl: Klicks treffen — b1bcb89
 - [ ] Weitere Dialoge (Optionen, Speichern/Laden mit Liste, Missionsziele, Sieg/Niederlage): vergrößert und bedienbar — b1bcb89
 - [ ] Kartenscrollen am unteren Rand über der vergrößerten Leiste, Auswahlrahmen ziehen bis in die Leiste — b1bcb89
