@@ -221,22 +221,57 @@ static void set_dst(region *r)
 #define PILLAR_H     152
 #define SCRIBE_R     472          /* right edge of the scribe's book */
 #define SCRIBE_H     195          /* top of the hood above the bottom edge */
-#define ARCH_H       197          /* top of the mercenary post's tent arches */
+#define OVERLAY_H    197          /* highest building-panel part above the bottom edge */
 
-/* The mercenary post's panel has a row of tent arches on top of the strip:
-   curtains up to ~166 px with six finials up to 195 px. Its exact outline per
-   column (rel -400..164), built once; g_arches says whether it is on screen. */
-#define ARCH_L       (-400)
-#define ARCH_R       165
+/* Some building panels stick out above the strip: the mercenary post has a row
+   of tent arches (curtains up to ~166 px, six finials up to 195 px), the
+   barracks a battlement wall with towers (up to 195 px). Their exact outline
+   per column (rel -400..162) is built once; each panel is recognised by a few
+   pixels that only it has at fixed spots. g_overlay says which one is shown. */
+#define OV_L         (-400)
+#define OV_R         165
+typedef struct { short l, r; unsigned char h; } span;      /* [l, r) up to h */
+typedef struct { short rel, h; WORD c565; } probe;
+
 static const int arch_finial[6] = { -329, -252, -171, -90, -9, 71 };
-static const WORD arch_tip565[6] = { 0x69c3, 0x7a03, 0x7a03, 0x7a03, 0x7a03, 0x69c3 };
-static unsigned char arch_top[ARCH_R - ARCH_L];
-static int g_arches;
+static const probe arch_probes[] = {
+    { -329, 190, 0x69c3 }, { -252, 190, 0x7a03 }, { -171, 190, 0x7a03 },
+    { -90, 190, 0x7a03 }, { -9, 190, 0x7a03 }, { 71, 190, 0x69c3 },
+};
+static const span barracks_spans[] = {      /* measured at 1920x1080, Extreme HD */
+    {-400,-394,195}, {-394,-391,194}, {-391,-381,195}, {-381,-373,188}, {-373,-357,195},
+    {-357,-352,187}, {-352,-351,184}, {-351,-341,179}, {-341,-331,187}, {-331,-330,184},
+    {-330,-320,178}, {-320,-309,187}, {-309,-299,178}, {-299,-288,187}, {-288,-278,178},
+    {-278,-269,187}, {-269,-268,184}, {-268,-258,179}, {-258,-247,187}, {-247,-237,178},
+    {-237,-226,187}, {-226,-216,178}, {-216,-205,187}, {-205,-195,178}, {-195,-186,187},
+    {-186,-185,184}, {-185,-175,179}, {-175,-164,187}, {-164,-154,178}, {-154,-143,187},
+    {-143,-133,178}, {-133,-122,187}, {-122,-112,178}, {-112,-103,187}, {-103,-102,184},
+    {-102,-92,179}, {-92,-81,187}, {-81,-71,178}, {-71,-60,187}, {-60,-50,178}, {-50,-39,187},
+    {-39,-29,178}, {-29,-20,187}, {-20,-19,184}, {-19,-9,179}, {-9,2,187}, {2,12,178}, {12,23,187},
+    {23,33,178}, {33,44,187}, {44,54,178}, {54,62,187}, {62,63,184}, {63,73,179}, {73,84,187},
+    {84,94,178}, {94,105,187}, {105,114,179}, {114,116,186}, {116,120,187}, {120,136,195},
+    {136,144,188}, {144,155,195}, {155,160,194}, {160,163,195},
+};
+static const probe barracks_probes[] = {     /* dark tower stones and wall */
+    { -388, 190, 0x2944 }, { -366, 190, 0x18c2 }, { -362, 183, 0x2104 },
+    { -336, 183, 0x41c7 }, { 0, 183, 0x4a47 }, { 126, 183, 0x20c3 },
+    { 130, 190, 0x2904 }, { 150, 183, 0x3145 }, { 158, 190, 0x20c3 },
+};
+static const struct {
+    const probe *probes;
+    int nprobes, need;
+} overlays[] = {
+    { arch_probes, 6, 4 },                  /* mercenary post */
+    { barracks_probes, 9, 7 },              /* barracks */
+};
+#define NOVERLAYS ((int)(sizeof overlays / sizeof *overlays))
+static unsigned char ov_top[NOVERLAYS][OV_R - OV_L];
+static int g_overlay = -1;
 
-static void init_arches(void)
+static void init_overlays(void)
 {
     int rel, i;
-    for (rel = ARCH_L; rel < ARCH_R; rel++) {
+    for (rel = OV_L; rel < OV_R; rel++) {   /* mercenary post: tent arches */
         int top = PANEL_H;
         for (i = 0; i < 6; i++) {
             int d = abs(rel - arch_finial[i]), t;
@@ -247,22 +282,31 @@ static void init_arches(void)
         }
         if (rel < -385 || (rel >= 146 && rel < 159))   /* posts at both ends */
             top = top > 170 ? top : 170;
-        arch_top[rel - ARCH_L] = (unsigned char)top;
+        ov_top[0][rel - OV_L] = (unsigned char)top;
     }
+    for (i = 0; i < (int)(sizeof barracks_spans / sizeof *barracks_spans); i++)
+        for (rel = barracks_spans[i].l; rel < barracks_spans[i].r; rel++)
+            ov_top[1][rel - OV_L] = barracks_spans[i].h;
 }
 
-/* is the arch row on screen? its finial tips are at fixed spots */
-static int detect_arches(const BYTE *src, LONG pitch)
+/* which panel overlay is on screen (-1: none)? */
+static int detect_overlay(const BYTE *src, LONG pitch)
 {
-    int i, hits = 0, y = g_h - 190;
-    for (i = 0; i < 6; i++) {
-        unsigned v = ((const WORD *)(src + y * pitch))[g_w / 2 + arch_finial[i]];
-        unsigned e = arch_tip565[i];
-        if (!g_565)                                   /* compare as 555 */
-            e = ((e >> 11) << 10) | (((e >> 6) & 31) << 5) | (e & 31);
-        hits += v == e;
+    int o, i;
+    for (o = 0; o < NOVERLAYS; o++) {
+        int hits = 0;
+        for (i = 0; i < overlays[o].nprobes; i++) {
+            const probe *p = &overlays[o].probes[i];
+            unsigned v = ((const WORD *)(src + (g_h - p->h) * pitch))[g_w / 2 + p->rel];
+            unsigned e = p->c565;
+            if (!g_565)                               /* compare as 555 */
+                e = ((e >> 11) << 10) | (((e >> 6) & 31) << 5) | (e & 31);
+            hits += v == e;
+        }
+        if (hits >= overlays[o].need)
+            return o;
     }
-    return hits >= 4;
+    return -1;
 }
 
 static int build_layout(region *out)
@@ -281,10 +325,10 @@ static int build_layout(region *out)
         r->kind = 1;
         r->ax = cx;
         r->ay = g_h;
-        r->k = fit(k, 2.0 * SCRIBE_R, ARCH_H, g_w, g_h * 0.5);
+        r->k = fit(k, 2.0 * SCRIBE_R, OVERLAY_H, g_w, g_h * 0.5);
         r->src.left = (LONG)(cx - PANEL_HALF);
         r->src.right = (LONG)(cx + SCRIBE_R);
-        r->src.top = g_h - ARCH_H;
+        r->src.top = g_h - OVERLAY_H;
         r->src.bottom = g_h;
         /* scale symmetrically: the dst rect must cover the left half too */
         set_dst(r);
@@ -357,8 +401,8 @@ static int in_shape(const region *r, double x, double y)
         else if (rel >= 112 && rel < 142) top = 138;   /* red i/x column */
         else if (rel >= 142 && rel < 164) top = PILLAR_H; /* pillar */
         else if (rel >= 164 && rel < 308) top = 146;   /* minimap frame */
-        if (g_arches && rel >= ARCH_L && rel < ARCH_R && arch_top[(int)floor(rel) - ARCH_L] > top)
-            top = arch_top[(int)floor(rel) - ARCH_L];  /* mercenary post */
+        if (g_overlay >= 0 && rel >= OV_L && rel < OV_R && ov_top[g_overlay][(int)floor(rel) - OV_L] > top)
+            top = ov_top[g_overlay][(int)floor(rel) - OV_L];   /* building panel */
         if (h <= top)
             return 1;
     }
@@ -573,13 +617,14 @@ static void present_ui(IDirectDrawSurface *screen, LONG ox, LONG oy)
     }
     if (!ensure_work())
         return;
-    g_arches = 0;
+    g_overlay = -1;
     if (scene == SCENE_INGAME2 && g_cfg.ui_scale > 1.0) {   /* a building's panel is open */
         DDSURFACEDESC sd;
         memset(&sd, 0, sizeof sd);
         sd.dwSize = sizeof sd;
         if (SUCCEEDED(g_shadow->lpVtbl->Lock(g_shadow, NULL, &sd, DDLOCK_WAIT | DDLOCK_READONLY, NULL))) {
-            g_arches = g_h >= 200 && g_w >= 2 * PANEL_HALF && detect_arches(sd.lpSurface, sd.lPitch);
+            if (g_h >= 200 && g_w >= 2 * PANEL_HALF)
+                g_overlay = detect_overlay(sd.lpSurface, sd.lPitch);
             g_shadow->lpVtbl->Unlock(g_shadow, NULL);
         }
     }
@@ -938,7 +983,7 @@ void sclan_ui_install(void)
     int n;
 
     InitializeCriticalSection(&g_cs);
-    init_arches();
+    init_overlays();
     if (g_cfg.ui_debug)
         CreateThread(NULL, 0, dump_thread, NULL, 0, NULL);
     find_scene_var();
