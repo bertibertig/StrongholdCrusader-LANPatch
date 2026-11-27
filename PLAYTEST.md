@@ -40,7 +40,7 @@ Beim Anspielen mit echten PCs prüfen. Format: `[ ]` offen, `[x]` bestanden (mit
 - [ ] Windows 10 echt, Vollbild 1920×1080, `UIScale=1.5`: flüssig, keine Bildfehler über der Leiste — b1bcb89
 - [ ] 2560×1440 mit `UIScale=2` auf echtem Monitor (im Lab nicht möglich: Xvfb bietet den Modus nicht) — b1bcb89
 - [x] Windows 10 echt, Extreme, Vollbild 1920×1080, `UIScale=1.25`: Gebäude anklicken (Bergfried, Söldnerposten) → Leiste vergrößert, Karte nicht gezoomt, Zeltbögen des Söldnerpostens vollständig (2026-11-27) — 9abb126
-- [x] Win10 Extreme 1920×1080 `UIScale=1.25`: Kaserne (Zinnen, Türme) vollständig vergrößert; Baumeistergilde, Tunnelbauergilde, Stall, Waffenkammer haben die normale Leiste — uncommitted
+- [x] Win10 Extreme 1920×1080 `UIScale=1.25`: Kaserne (Zinnen, Türme) vollständig vergrößert; Baumeistergilde, Tunnelbauergilde, Stall, Waffenkammer haben die normale Leiste — 7d9cc2a
 - [ ] Weitere Gebäude-Leisten (Markt, Lager, Kornspeicher …): nichts ragt abgeschnitten über die Leiste
 - [ ] Alle Leisten-Untermenüs, Gebäude-Infofenster, Schreiber-Bericht, Einheiten-Auswahl: Klicks treffen — b1bcb89
 - [ ] Weitere Dialoge (Optionen, Speichern/Laden mit Liste, Missionsziele, Sieg/Niederlage): vergrößert und bedienbar — b1bcb89

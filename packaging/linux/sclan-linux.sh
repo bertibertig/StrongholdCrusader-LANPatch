@@ -23,7 +23,7 @@
 # =====================================================================
 set -euo pipefail
 
-VERSION=1.1.2
+VERSION=1.1.3
 HERE="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/sclanpatch"
 CONF="${SCLAN_CONF:-$CONF_DIR/config}"
