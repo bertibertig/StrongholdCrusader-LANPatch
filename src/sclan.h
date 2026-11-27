@@ -13,7 +13,7 @@
 #include <windows.h>
 #include <objbase.h>
 
-#define SCLAN_VERSION        "1.1.1"
+#define SCLAN_VERSION        "1.1.2"
 #define DPLAY_ENUM_PORT      47624   /* DirectPlay TCP/IP SP enumeration port */
 #define SCLAN_MAX_PEERS      256
 #define SCLAN_MAX_IFACES     32

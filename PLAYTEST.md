@@ -22,10 +22,10 @@ Beim Anspielen mit echten PCs prüfen. Format: `[ ]` offen, `[x]` bestanden (mit
 - [ ] Mitspieler ohne Patch kann einem gepatchten Host weiterhin beitreten — 6024c23
 - [ ] Anzeige „Eure IP“ im Service-Provider-Dialog zeigt die echte LAN-Adresse zuerst — 6024c23
 - [x] Linux-Lab (Proton, multihome): Client findet Session und sitzt mit Host in der Lobby (2026-11-26) — 6024c23
-- [x] Router mit UPnP (ohne NAT-Hairpinning): Client mit `BlockNATHelp=1` findet Win10-Host; Log zeigt „blocked DirectPlay NAT helper“ und „reply address <source address>“ (2026-11-27) — uncommitted
-- [ ] Router mit UPnP: Beitreten klappt, wenn BEIDE PCs `BlockNATHelp=1` haben (Host-Antwort ohne öffentliche Adresse) — uncommitted
-- [x] Router mit UPnP ohne Hairpinning, Host mit altem Patch (meldet öffentliche Adresse): Win10-Client mit `HairpinFix=1` tritt im echten Spiel bei; Log zeigt „hairpin: … is a UPnP mapping -> connecting to 192.168.0.39:2300“ (2026-11-27) — uncommitted
-- [x] Kein Absturz beim Öffnen von Mehrspieler (IAT-Patch-Race zwischen Watcher- und Hauptthread behoben) (2026-11-27) — uncommitted
+- [x] Router mit UPnP (ohne NAT-Hairpinning): Client mit `BlockNATHelp=1` findet Win10-Host; Log zeigt „blocked DirectPlay NAT helper“ und „reply address <source address>“ (2026-11-27) — 0e938c3
+- [ ] Router mit UPnP: Beitreten klappt, wenn BEIDE PCs `BlockNATHelp=1` haben (Host-Antwort ohne öffentliche Adresse) — 0e938c3
+- [x] Router mit UPnP ohne Hairpinning, Host mit altem Patch (meldet öffentliche Adresse): Win10-Client mit `HairpinFix=1` tritt im echten Spiel bei; Log zeigt „hairpin: … is a UPnP mapping -> connecting to 192.168.0.39:2300“ (2026-11-27) — 0e938c3
+- [x] Kein Absturz beim Öffnen von Mehrspieler (IAT-Patch-Race zwischen Watcher- und Hauptthread behoben) (2026-11-27) — 0e938c3
 
 ## Stabilität im Spiel
 - [ ] Partie ≥ 30 min zu zweit ohne Verbindungsabbruch/Desync — 6024c23
@@ -39,8 +39,8 @@ Beim Anspielen mit echten PCs prüfen. Format: `[ ]` offen, `[x]` bestanden (mit
 - [x] Classic, 1280×720, 1.5: Menükern auf 1.2x und Leiste auf 1.36x begrenzt, alles sichtbar (Linux-Lab, 2026-11-27) — b1bcb89
 - [ ] Windows 10 echt, Vollbild 1920×1080, `UIScale=1.5`: flüssig, keine Bildfehler über der Leiste — b1bcb89
 - [ ] 2560×1440 mit `UIScale=2` auf echtem Monitor (im Lab nicht möglich: Xvfb bietet den Modus nicht) — b1bcb89
-- [x] Windows 10 echt, Extreme, Vollbild 1920×1080, `UIScale=1.25`: Gebäude anklicken (Bergfried, Söldnerposten) → Leiste vergrößert, Karte nicht gezoomt, Zeltbögen des Söldnerpostens vollständig (2026-11-27) — uncommitted
-- [ ] Kaserne, Ingenieursgilde und weitere Gebäude-Leisten: nichts ragt abgeschnitten über die Leiste — uncommitted
+- [x] Windows 10 echt, Extreme, Vollbild 1920×1080, `UIScale=1.25`: Gebäude anklicken (Bergfried, Söldnerposten) → Leiste vergrößert, Karte nicht gezoomt, Zeltbögen des Söldnerpostens vollständig (2026-11-27) — 9abb126
+- [ ] Kaserne, Ingenieursgilde und weitere Gebäude-Leisten: nichts ragt abgeschnitten über die Leiste — 9abb126
 - [ ] Alle Leisten-Untermenüs, Gebäude-Infofenster, Schreiber-Bericht, Einheiten-Auswahl: Klicks treffen — b1bcb89
 - [ ] Weitere Dialoge (Optionen, Speichern/Laden mit Liste, Missionsziele, Sieg/Niederlage): vergrößert und bedienbar — b1bcb89
 - [ ] Kartenscrollen am unteren Rand über der vergrößerten Leiste, Auswahlrahmen ziehen bis in die Leiste — b1bcb89
