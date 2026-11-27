@@ -10,7 +10,17 @@
  *   dplayx.dll : LoadLibrary*     (to notice dpwsockx.dll being loaded)
  *   dpwsockx   : sendto/WSASendTo (broadcast fan-out + unicast to peers),
  *                socket/accept    (TCP_NODELAY / keepalive),
- *                gethostbyname    (LAN address first)
+ *                gethostbyname    (LAN address first),
+ *                LoadLibrary*     (refuse dpnathlp.dll, see below),
+ *                connect/sendto   (UPnP mapping of our own router -> LAN address, upnp.c)
+ *
+ * NAT helper: dpwsockx loads dpnathlp.dll, which opens a UPnP port mapping on
+ * the router and then advertises the router's *public* address and external
+ * port in every DirectPlay message header (enum requests and replies). Inside
+ * the LAN the other PC then has to connect to its own router's public address,
+ * which most home routers do not loop back (no NAT hairpinning) - the session
+ * is never listed or cannot be joined. Without the helper dpwsockx leaves the
+ * address empty and the receiver uses the real source address.
  *
  * A watcher thread re-applies the patches periodically, because the service
  * provider may be unloaded and loaded again between games.
@@ -23,6 +33,7 @@ typedef int     (WSAAPI *sendto_fn)(SOCKET, const char *, int, int, const struct
 typedef int     (WSAAPI *wsasendto_fn)(SOCKET, LPWSABUF, DWORD, LPDWORD, DWORD, const struct sockaddr *,
                                        int, LPWSAOVERLAPPED, LPWSAOVERLAPPED_COMPLETION_ROUTINE);
 typedef SOCKET  (WSAAPI *socket_fn)(int, int, int);
+typedef int     (WSAAPI *connect_fn)(SOCKET, const struct sockaddr *, int);
 typedef SOCKET  (WSAAPI *accept_fn)(SOCKET, struct sockaddr *, int *);
 typedef struct hostent *(WSAAPI *ghbn_fn)(const char *);
 typedef HMODULE (WINAPI *lla_fn)(LPCSTR);
@@ -34,6 +45,7 @@ typedef HRESULT (WINAPI *cci_fn)(REFCLSID, LPUNKNOWN, DWORD, REFIID, LPVOID *);
 static sendto_fn    real_sendto;
 static wsasendto_fn real_WSASendTo;
 static socket_fn    real_socket;
+static connect_fn   real_connect;
 static accept_fn    real_accept;
 static ghbn_fn      real_gethostbyname;
 static lla_fn       real_LoadLibraryA;
@@ -53,6 +65,15 @@ static DWORD  g_enum_time;
 
 /* ------------------------------------------------------------------ IAT */
 
+static CRITICAL_SECTION g_patchcs;
+static INIT_ONCE g_patchcs_once = INIT_ONCE_STATIC_INIT;
+
+static BOOL CALLBACK init_patchcs(PINIT_ONCE o, PVOID p, PVOID *c)
+{
+    InitializeCriticalSection(&g_patchcs);
+    return TRUE;
+}
+
 int sclan_patch_iat(HMODULE mod, const void *target, const void *repl)
 {
     BYTE *base = (BYTE *)mod;
@@ -64,7 +85,8 @@ int sclan_patch_iat(HMODULE mod, const void *target, const void *repl)
 
     if (!mod || !target || target == repl || dos->e_magic != IMAGE_DOS_SIGNATURE)
         return 0;
-    nt = (IMAGE_NT_HEADERS *)(base + dos->e_lfanew);
+    InitOnceExecuteOnce(&g_patchcs_once, init_patchcs, NULL, NULL);
+    nt =(IMAGE_NT_HEADERS *)(base + dos->e_lfanew);
     if (nt->Signature != IMAGE_NT_SIGNATURE)
         return 0;
     dir = &nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
@@ -75,12 +97,36 @@ int sclan_patch_iat(HMODULE mod, const void *target, const void *repl)
         IMAGE_THUNK_DATA *t = (IMAGE_THUNK_DATA *)(base + imp->FirstThunk);
         for (; t->u1.Function; t++) {
             if ((const void *)t->u1.Function == target) {
-                DWORD old;
-                if (VirtualProtect(&t->u1.Function, sizeof(void *), PAGE_READWRITE, &old)) {
-                    t->u1.Function = (ULONG_PTR)repl;
-                    VirtualProtect(&t->u1.Function, sizeof(void *), old, &old);
-                    patched++;
+                /*
+                 * WriteProcessMemory instead of VirtualProtect + plain store:
+                 * another thread (the loader, or a second patch of the same
+                 * page) can put the page back to read-only between our
+                 * VirtualProtect and the store - that crashed the game with an
+                 * access violation. WriteProcessMemory fails instead of
+                 * faulting, so retry a few times.
+                 */
+                ULONG_PTR val = (ULONG_PTR)repl;
+                int tries;
+                EnterCriticalSection(&g_patchcs);
+                for (tries = 0; tries < 5; tries++) {
+                    SIZE_T done = 0;
+                    DWORD old;
+                    if (WriteProcessMemory(GetCurrentProcess(), &t->u1.Function, &val, sizeof val, &done) &&
+                        done == sizeof val)
+                        break;
+                    if (VirtualProtect(&t->u1.Function, sizeof(void *), PAGE_EXECUTE_READWRITE, &old) &&
+                        WriteProcessMemory(GetCurrentProcess(), &t->u1.Function, &val, sizeof val, &done) &&
+                        done == sizeof val) {
+                        VirtualProtect(&t->u1.Function, sizeof(void *), old, &old);
+                        break;
+                    }
+                    Sleep(1);
                 }
+                LeaveCriticalSection(&g_patchcs);
+                if (tries < 5)
+                    patched++;
+                else
+                    sclan_log("WARNING: could not patch an import (error %lu)", GetLastError());
             }
         }
     }
@@ -134,11 +180,44 @@ static void send_copy(SOCKET s, const char *buf, int len, int flags, ULONG addr)
     real_sendto(s, buf, len, flags, (struct sockaddr *)&sin, sizeof sin);
 }
 
+/*
+ * DirectPlay TCP/IP SP header: DWORD (size | 0xFAB << 20), then a SOCKADDR_IN
+ * telling the receiver where to send the answer. An empty address means "use
+ * the source address of this packet"; anything else that is not one of our
+ * own addresses is a NAT helper (UPnP) public address - log it once.
+ */
+static void log_reply_address(const char *buf, int len)
+{
+    static ULONG last_addr = 1;
+    static USHORT last_port;
+    const struct sockaddr_in *sa;
+    struct in_addr ia;
+
+    if (len < 20 || (*(const DWORD *)buf >> 20) != 0xFAB)
+        return;
+    sa = (const struct sockaddr_in *)(buf + 4);
+    if (sa->sin_addr.s_addr == last_addr && sa->sin_port == last_port)
+        return;
+    last_addr = sa->sin_addr.s_addr;
+    last_port = sa->sin_port;
+    ia = sa->sin_addr;
+    if (!ia.s_addr)
+        sclan_log("enum: reply address <source address>:%u", ntohs(sa->sin_port));
+    else if (sclan_is_local_addr(ia.s_addr))
+        sclan_log("enum: reply address %s:%u (local)", inet_ntoa(ia), ntohs(sa->sin_port));
+    else
+        sclan_log("enum: WARNING reply address %s:%u is not a local address (UPnP/NAT helper?) - "
+                  "hosts in the LAN may not be able to answer; set BlockNATHelp=1",
+                  inet_ntoa(ia), ntohs(sa->sin_port));
+}
+
 static void fan_out(SOCKET s, const char *buf, int len, int flags, ULONG orig)
 {
     sclan_iface ifs[SCLAN_MAX_IFACES];
     ULONG peers[SCLAN_MAX_PEERS];
     int n, i, np;
+
+    log_reply_address(buf, len);
 
     if (len > 0 && len <= (int)sizeof g_enum_pkt) {
         EnterCriticalSection(&g_enumcs);
@@ -192,7 +271,13 @@ void sclan_resend_enum_to(ULONG addr)
 static int WSAAPI hk_sendto(SOCKET s, const char *buf, int len, int flags,
                             const struct sockaddr *to, int tolen)
 {
-    int rc = real_sendto(s, buf, len, flags, to, tolen);
+    struct sockaddr_in alt;
+    int rc;
+    if (sclan_hairpin_translate(to, tolen, 0, &alt)) {
+        to = (const struct sockaddr *)&alt;
+        tolen = sizeof alt;
+    }
+    rc = real_sendto(s, buf, len, flags, to, tolen);
     if (is_enum_broadcast(to, tolen))
         fan_out(s, buf, len, flags, ((const struct sockaddr_in *)to)->sin_addr.s_addr);
     return rc;
@@ -202,7 +287,13 @@ static int WSAAPI hk_WSASendTo(SOCKET s, LPWSABUF bufs, DWORD nbufs, LPDWORD sen
                                const struct sockaddr *to, int tolen, LPWSAOVERLAPPED ov,
                                LPWSAOVERLAPPED_COMPLETION_ROUTINE cr)
 {
-    int rc = real_WSASendTo(s, bufs, nbufs, sent, flags, to, tolen, ov, cr);
+    struct sockaddr_in alt;
+    int rc;
+    if (sclan_hairpin_translate(to, tolen, 0, &alt)) {
+        to = (const struct sockaddr *)&alt;
+        tolen = sizeof alt;
+    }
+    rc = real_WSASendTo(s, bufs, nbufs, sent, flags, to, tolen, ov, cr);
     if (is_enum_broadcast(to, tolen)) {
         char tmp[1500];
         int len = 0;
@@ -240,6 +331,14 @@ static SOCKET WSAAPI hk_socket(int af, int type, int proto)
     if (type == SOCK_STREAM)
         tune_stream(s);
     return s;
+}
+
+static int WSAAPI hk_connect(SOCKET s, const struct sockaddr *to, int tolen)
+{
+    struct sockaddr_in alt;
+    if (sclan_hairpin_translate(to, tolen, 1, &alt))
+        return real_connect(s, (const struct sockaddr *)&alt, sizeof alt);
+    return real_connect(s, to, tolen);
 }
 
 static SOCKET WSAAPI hk_accept(SOCKET ls, struct sockaddr *addr, int *alen)
@@ -294,15 +393,60 @@ static struct hostent *WSAAPI hk_gethostbyname(const char *name)
     return h;
 }
 
+/* --------------------------------------------- NAT helper (dpwsockx) */
+
+static int is_nat_helper_a(LPCSTR name)
+{
+    const char *b;
+    if (!g_cfg.block_nat_help || !name || IS_INTRESOURCE(name))
+        return 0;
+    b = strrchr(name, '\\');
+    b = b ? b + 1 : name;
+    return !_strnicmp(b, "dpnathlp", 8);
+}
+
+static int is_nat_helper_w(LPCWSTR name)
+{
+    char a[MAX_PATH];
+    if (!g_cfg.block_nat_help || !name || IS_INTRESOURCE(name))
+        return 0;
+    if (!WideCharToMultiByte(CP_ACP, 0, name, -1, a, sizeof a, NULL, NULL))
+        return 0;
+    return is_nat_helper_a(a);
+}
+
+static HMODULE refuse_nat_helper(void)
+{
+    static volatile LONG logged;
+    if (InterlockedExchange(&logged, 1) == 0)
+        sclan_log("blocked DirectPlay NAT helper (dpnathlp.dll) - LAN address is advertised instead of a UPnP mapping");
+    SetLastError(ERROR_MOD_NOT_FOUND);
+    return NULL;
+}
+
+static HMODULE WINAPI sp_LoadLibraryA(LPCSTR n)
+{ return is_nat_helper_a(n) ? refuse_nat_helper() : real_LoadLibraryA(n); }
+static HMODULE WINAPI sp_LoadLibraryW(LPCWSTR n)
+{ return is_nat_helper_w(n) ? refuse_nat_helper() : real_LoadLibraryW(n); }
+static HMODULE WINAPI sp_LoadLibraryExA(LPCSTR n, HANDLE f, DWORD fl)
+{ return is_nat_helper_a(n) ? refuse_nat_helper() : real_LoadLibraryExA(n, f, fl); }
+static HMODULE WINAPI sp_LoadLibraryExW(LPCWSTR n, HANDLE f, DWORD fl)
+{ return is_nat_helper_w(n) ? refuse_nat_helper() : real_LoadLibraryExW(n, f, fl); }
+
 /* ------------------------------------------------------- module watcher */
 
 static void patch_sp(HMODULE sp)
 {
     int n = 0;
+    n += patch_all(sp, kernel_dlls, "LoadLibraryA", (void *)sp_LoadLibraryA);
+    n += patch_all(sp, kernel_dlls, "LoadLibraryW", (void *)sp_LoadLibraryW);
+    n += patch_all(sp, kernel_dlls, "LoadLibraryExA", (void *)sp_LoadLibraryExA);
+    n += patch_all(sp, kernel_dlls, "LoadLibraryExW", (void *)sp_LoadLibraryExW);
     n += patch_all(sp, sock_dlls, "sendto", (void *)hk_sendto);
     n += patch_all(sp, sock_dlls, "WSASendTo", (void *)hk_WSASendTo);
     n += patch_all(sp, sock_dlls, "socket", (void *)hk_socket);
     n += patch_all(sp, sock_dlls, "accept", (void *)hk_accept);
+    n += patch_all(sp, sock_dlls, "connect", (void *)hk_connect);
     n += patch_all(sp, sock_dlls, "gethostbyname", (void *)hk_gethostbyname);
     /* dpwsockx imports the data symbol gdwDPlaySPRefCount from "DPLAYX.dll" -
        the loader may have bound it to this proxy; point it at the real one. */
@@ -362,6 +506,7 @@ static void resolve_reals(void)
     real_sendto        = (sendto_fn)GetProcAddress(ws, "sendto");
     real_WSASendTo     = (wsasendto_fn)GetProcAddress(ws, "WSASendTo");
     real_socket        = (socket_fn)GetProcAddress(ws, "socket");
+    real_connect       = (connect_fn)GetProcAddress(ws, "connect");
     real_accept        = (accept_fn)GetProcAddress(ws, "accept");
     real_gethostbyname = (ghbn_fn)GetProcAddress(ws, "gethostbyname");
     real_LoadLibraryA  = (lla_fn)GetProcAddress(k32, "LoadLibraryA");
@@ -379,6 +524,7 @@ void sclan_hooks_on_dplay_loaded(void)
         WSAStartup(MAKEWORD(2, 2), &wd);
         sclan_log("DirectPlay in use - starting hooks and discovery");
         sclan_net_start();
+        sclan_upnp_start();
         CreateThread(NULL, 0, watcher, NULL, 0, NULL);
         sclan_discovery_start();
     }

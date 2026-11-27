@@ -47,6 +47,8 @@ void sclan_config_load(void)
     g_cfg.unicast_to_peers       = ini_int(ini, "UnicastToPeers", 1);
     g_cfg.tcp_nodelay            = ini_int(ini, "TcpNoDelay", 1);
     g_cfg.tcp_keepalive          = ini_int(ini, "TcpKeepAlive", 1);
+    g_cfg.block_nat_help         = ini_int(ini, "BlockNATHelp", 1);
+    g_cfg.hairpin_fix            = ini_int(ini, "HairpinFix", 1);
     g_cfg.prefer_lan_address     = ini_int(ini, "PreferLanAddress", 1);
     ini_str(ini, "PreferredIP", "", g_cfg.preferred_ip, sizeof g_cfg.preferred_ip);
     ini_str(ini, "IgnoreAdapters", "", g_cfg.ignore_adapters, sizeof g_cfg.ignore_adapters);

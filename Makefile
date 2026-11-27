@@ -16,7 +16,7 @@ CFLAGS  := -O2 -Wall -Wextra -Wno-unused-parameter -Wno-cast-function-type -Wno-
 LDFLAGS := -shared -static -static-libgcc -s -Wl,--enable-stdcall-fixup -Wl,--kill-at
 LIBS    := -lws2_32 -liphlpapi -lole32 -luuid -lgdi32
 
-SRC     := src/proxy.c src/hooks.c src/discovery.c src/net.c src/config.c src/uiscale.c
+SRC     := src/proxy.c src/hooks.c src/discovery.c src/net.c src/config.c src/uiscale.c src/upnp.c
 OUT     := build
 WINPKG  := SC-LANPatch-$(VERSION)-Windows
 LINPKG  := SC-LANPatch-$(VERSION)-Linux

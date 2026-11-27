@@ -6,6 +6,9 @@
  *   dptest host <seconds>          host a session, print joins, exit 0 if someone joined
  *   dptest join <seconds> [ip]     search (broadcast, or unicast to ip), join, send, exit 0 on success
  *
+ * DPTEST_GUID={xxxxxxxx-xxxx-...} replaces the test application GUID, e.g. to
+ * find a session hosted by the real game.
+ *
  * Output lines start with "DPTEST:" so test scripts can grep them.
  */
 #define INITGUID
@@ -19,6 +22,21 @@
 
 /* random but fixed application GUID for the test */
 DEFINE_GUID(GUID_SCLanTest, 0x5c1a7e57, 0x1234, 0x4abc, 0x9a, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77);
+
+static GUID app_guid;
+
+static void pick_app_guid(void)
+{
+    const char *e = getenv("DPTEST_GUID");
+    unsigned long d1; unsigned int d2, d3, b[8];
+    app_guid = GUID_SCLanTest;
+    if (e && sscanf(e, "{%8lx-%4x-%4x-%2x%2x-%2x%2x%2x%2x%2x%2x}", &d1, &d2, &d3,
+                    &b[0], &b[1], &b[2], &b[3], &b[4], &b[5], &b[6], &b[7]) == 11) {
+        int i;
+        app_guid.Data1 = d1; app_guid.Data2 = (USHORT)d2; app_guid.Data3 = (USHORT)d3;
+        for (i = 0; i < 8; i++) app_guid.Data4[i] = (BYTE)b[i];
+    }
+}
 
 static LPDIRECTPLAY4A dp;
 static int found;
@@ -108,6 +126,7 @@ int main(int argc, char **argv)
         return 2;
     }
     secs = atoi(argv[2]);
+    pick_app_guid();
     logf = fopen("dptest.log", "w");
     /* make sure dplayx.dll (the proxy, if present) is loaded like the game does */
     DirectPlayEnumerateA(NULL, NULL);
@@ -126,7 +145,7 @@ int main(int argc, char **argv)
         d.dwSize = sizeof d;
         /* same flags as the game: 0xa044 */
         d.dwFlags = DPSESSION_KEEPALIVE | DPSESSION_MIGRATEHOST | DPSESSION_DIRECTPLAYPROTOCOL | DPSESSION_OPTIMIZELATENCY;
-        d.guidApplication = GUID_SCLanTest;
+        d.guidApplication = app_guid;
         d.dwMaxPlayers = 8;
         d.lpszSessionNameA = "sclantest";
         hr = IDirectPlayX_Open(dp, &d, DPOPEN_CREATE);
@@ -143,7 +162,7 @@ int main(int argc, char **argv)
         DWORD end = GetTickCount() + secs * 1000, t0 = GetTickCount();
         memset(&d, 0, sizeof d);
         d.dwSize = sizeof d;
-        d.guidApplication = GUID_SCLanTest;
+        d.guidApplication = app_guid;
         while (!found && GetTickCount() < end) {
             hr = IDirectPlayX_EnumSessions(dp, &d, 0, enum_cb, NULL,
                                            DPENUMSESSIONS_AVAILABLE | DPENUMSESSIONS_ASYNC);

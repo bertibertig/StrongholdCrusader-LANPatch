@@ -70,13 +70,24 @@ native Auflösung des Monitors wählen.
 Nach einem Mehrspieler-Versuch liegt `sclanpatch.log` im Spielordner. Darin sollte stehen:
 
 ```
-patched 5 imports in dpwsockx.dll
+game: Stronghold Crusader.exe
+patched 7 imports in dpwsockx.dll
 discovery: listening on TCP 47630
 peer found: 192.168.0.23
+blocked DirectPlay NAT helper (dpnathlp.dll) - ...
+enum: reply address <source address>:2300
 ```
 
 Steht dort kein `peer found`, blockiert meist die Firewall auf dem
 **anderen** PC: Ist der Patch dort installiert? Steht das Netzwerk auf „Privat“?
+
+Alle PCs müssen **dieselbe EXE** starten: entweder überall `Stronghold Crusader.exe`
+oder überall `Stronghold_Crusader_Extreme.exe`. Die beiden Versionen sehen sich
+gegenseitig nicht (Zeile `game:` im Log).
+
+Steht dort `enum: WARNING reply address … is not a local address`, meldet DirectPlay
+per UPnP die öffentliche Adresse des Routers. Dann `BlockNATHelp=1` in
+`sclanpatch.ini` setzen (Standard), und zwar auf **allen** PCs.
 
 ## Deinstallieren
 

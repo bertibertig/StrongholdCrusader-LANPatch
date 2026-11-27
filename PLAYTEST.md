@@ -22,6 +22,10 @@ Beim Anspielen mit echten PCs prüfen. Format: `[ ]` offen, `[x]` bestanden (mit
 - [ ] Mitspieler ohne Patch kann einem gepatchten Host weiterhin beitreten — 6024c23
 - [ ] Anzeige „Eure IP“ im Service-Provider-Dialog zeigt die echte LAN-Adresse zuerst — 6024c23
 - [x] Linux-Lab (Proton, multihome): Client findet Session und sitzt mit Host in der Lobby (2026-11-26) — 6024c23
+- [x] Router mit UPnP (ohne NAT-Hairpinning): Client mit `BlockNATHelp=1` findet Win10-Host; Log zeigt „blocked DirectPlay NAT helper“ und „reply address <source address>“ (2026-11-27) — uncommitted
+- [ ] Router mit UPnP: Beitreten klappt, wenn BEIDE PCs `BlockNATHelp=1` haben (Host-Antwort ohne öffentliche Adresse) — uncommitted
+- [x] Router mit UPnP ohne Hairpinning, Host mit altem Patch (meldet öffentliche Adresse): Win10-Client mit `HairpinFix=1` tritt im echten Spiel bei; Log zeigt „hairpin: … is a UPnP mapping -> connecting to 192.168.0.39:2300“ (2026-11-27) — uncommitted
+- [x] Kein Absturz beim Öffnen von Mehrspieler (IAT-Patch-Race zwischen Watcher- und Hauptthread behoben) (2026-11-27) — uncommitted
 
 ## Stabilität im Spiel
 - [ ] Partie ≥ 30 min zu zweit ohne Verbindungsabbruch/Desync — 6024c23

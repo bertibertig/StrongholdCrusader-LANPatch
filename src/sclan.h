@@ -30,6 +30,8 @@ typedef struct {
     int   unicast_to_peers;        /* send DirectPlay enum requests directly to known peers */
     int   tcp_nodelay;             /* disable Nagle on DirectPlay stream sockets */
     int   tcp_keepalive;
+    int   block_nat_help;          /* keep dpwsockx from loading the UPnP NAT helper */
+    int   hairpin_fix;             /* connect to the LAN target of UPnP mappings of our own router */
     int   prefer_lan_address;      /* sort gethostbyname() results: real LAN first */
     char  preferred_ip[64];        /* explicit address that must come first */
     char  ignore_adapters[512];    /* comma separated substrings of adapter names to ignore */
@@ -72,6 +74,10 @@ void sclan_ui_install(void);
 
 /* proxy.c */
 HMODULE sclan_real_dplayx(void);
+
+/* upnp.c - NAT hairpin workaround */
+void sclan_upnp_start(void);
+int  sclan_hairpin_translate(const struct sockaddr *to, int tolen, int tcp, struct sockaddr_in *alt);
 
 /* discovery.c */
 void sclan_discovery_start(void);

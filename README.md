@@ -31,6 +31,7 @@ einzigen UDP-Broadcast an `255.255.255.255:47624`. Daran scheitert es oft:
 |---|---|
 | Broadcast geht über den falschen Adapter | Die Spielsuche wird zusätzlich als *gerichteter* Broadcast über **jeden** aktiven Adapter gesendet. |
 | Broadcast erreicht den Host nicht (VPN, Subnetze, WLAN-Isolation) | **TCP-Nachbarsuche** (Port 47630): Jede Patch-Installation betreibt einen kleinen TCP-Dienst. Beim Suchen werden die eigenen Subnetze (max. /22, sonst das eigene /24) und feste `Peers=` abgefragt. Gefundene Mitspieler tauschen ihre Peer-Listen aus (Gossip). Die DirectPlay-Spielsuche geht dann **direkt (Unicast)** an jeden gefundenen PC. |
+| DirectPlay meldet per UPnP die öffentliche Router-Adresse statt der LAN-Adresse (Router leitet sie nicht ins LAN zurück) | DirectPlays NAT-Helfer (`dpnathlp.dll`) wird blockiert (`BlockNATHelp=1`), damit die echte LAN-Adresse gilt. Das Log warnt, falls trotzdem eine fremde Adresse gemeldet wird. |
 | Spiel meldet die IP eines virtuellen Adapters | Eigene Adressen werden sortiert: echte LAN-Karte mit Gateway zuerst, virtuelle Adapter zuletzt (`PreferredIP=` erzwingt eine Adresse). |
 | Verzögerungen / Abbrüche bei laufender Partie | `TCP_NODELAY` (kein Nagle-Puffer) und TCP-Keepalive auf DirectPlays Spielverbindungen. |
 | Firewall / DirectPlay deaktiviert | `install.bat` aktiviert DirectPlay, legt Firewall-Regeln an und warnt bei „Öffentlich“-Netzprofil. |
